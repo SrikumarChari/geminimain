@@ -5,22 +5,18 @@
  */
 package com.apollo.domain.model.application;
 
-import java.util.List;
+import com.apollo.common.repository.BaseRepository;
 
 /**
- *
+ * 
+ * Methods are inherited, additional methods can be added if required. All streaming,
+ * database or file implementation will inherit from this class
+ * 
+ * 
  * @author schari
+ * @param <ApolloApplication>
+ * @param <Integer>
  */
-public interface ApolloApplicationRepository {
-    //find an application given it's ID
-    ApolloApplication find(Integer appID);
+public interface ApolloApplicationRepository extends BaseRepository<ApolloApplication, Integer>  {
     
-    //returns a list of all applications
-    List<ApolloApplication> findAll();
-    
-    //save an Application object
-    void store(ApolloApplication a);
-    
-    //returns the next application id
-    void nextApplicationID ();
 }
