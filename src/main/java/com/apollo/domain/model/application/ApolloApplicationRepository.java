@@ -14,9 +14,7 @@ import com.apollo.common.repository.BaseRepository;
  * 
  * 
  * @author schari
- * @param <ApolloApplication>
- * @param <Integer>
  */
-public interface ApolloApplicationRepository extends BaseRepository<ApolloApplication, Integer>  {
+public interface ApolloApplicationRepository extends BaseRepository<ApolloApplication, String>  {
     
 }

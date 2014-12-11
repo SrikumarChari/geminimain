@@ -4,12 +4,15 @@
  * and open the template in the editor.
  */
 package com.apollo.domain.model.application;
+
+import java.io.Serializable;
+
 /**
  *
  * @author schari
  */
-public class ApolloApplication {
-    private Integer id;
+public class ApolloApplication implements Serializable {
+    private String id;
     private String name;
     private String description;
     private String custom; //string for any custom description, URL's etc.
@@ -17,11 +20,11 @@ public class ApolloApplication {
     private String location; //TODO: convert to a geo coordinate 
 //    private ArrayList<GeminiNetwork> networks;
 
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
     }
 

@@ -12,27 +12,33 @@ import java.net.InetAddress;
  * @author schari
  */
 public class ApolloNetwork {
-    private Integer id;
-    private Integer appID = 0; //parent application that this network represents
+    private String id;
+    private String appID; 
     private InetAddress start;
     private InetAddress end;
     private String networkType;
     //private ArrayList<GeminiServer> activeDevices;
     //private List<String> vlans; //for now it is a string, need to convert to InetAddress later
 
-    public Integer getId() {
+    public ApolloNetwork() {
+        this.id = "";
+        this.appID = "";
+        this.networkType = "";
+    }
+
+    public String getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public Integer getAppID() {
+    public String getAppID() {
         return appID;
     }
 
-    public void setAppID(Integer appID) {
+    public void setAppID(String appID) {
         this.appID = appID;
     }
 

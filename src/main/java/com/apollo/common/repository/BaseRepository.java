@@ -17,7 +17,9 @@ import java.util.List;
 public interface BaseRepository <T, PK extends Serializable> {
 
     /** Persist the newInstance object into database
-     * @param newInstance */
+     * @param newInstance
+     * @return the id of the object inserted 
+     */
     void add(T newInstance);
 
     /** Retrieve an object that was previously persisted to the database using

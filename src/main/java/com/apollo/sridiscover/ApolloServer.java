@@ -13,9 +13,9 @@ import java.net.InetAddress;
  * @author schari
  */
 class ApolloServer {
-    private Integer id;
-    private Integer networkID; //network to which this server belongs to
-    private Integer appID; //application to which this server belongs to
+    private String id;
+    private String networkID; //network to which this server belongs to
+    private String appID; //application to which this server belongs to
     private String name;
     private String description;
     private InetAddress address;
@@ -28,27 +28,27 @@ class ApolloServer {
     private String admin;
     private String password;
 
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public Integer getNetworkID() {
+    public String getNetworkID() {
         return networkID;
     }
 
-    public void setNetworkID(Integer networkID) {
+    public void setNetworkID(String networkID) {
         this.networkID = networkID;
     }
 
-    public Integer getAppID() {
+    public String getAppID() {
         return appID;
     }
 
-    public void setAppID(Integer appID) {
+    public void setAppID(String appID) {
         this.appID = appID;
     }
 

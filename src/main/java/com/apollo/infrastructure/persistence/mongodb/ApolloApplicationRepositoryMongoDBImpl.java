@@ -8,16 +8,16 @@ package com.apollo.infrastructure.persistence.mongodb;
 import com.apollo.common.repository.impl.BaseRepositoryMongoDBImpl;
 import com.apollo.domain.model.application.ApolloApplication;
 import com.apollo.domain.model.application.ApolloApplicationRepository;
-import com.mongodb.*;
+import com.mongodb.DB;
 
 /**
- * The BaseRepositoryMongoDBImpl class provides the CRUD implementations. That 
- * class uses the class name as the database name. 
+ *
  * @author schari
  */
-public class ApplicationRepositoryMongoDBImpl extends BaseRepositoryMongoDBImpl <ApolloApplication, Integer> implements ApolloApplicationRepository {
+public class ApolloApplicationRepositoryMongoDBImpl extends BaseRepositoryMongoDBImpl<ApolloApplication, String>
+        implements ApolloApplicationRepository {
 
-    public ApplicationRepositoryMongoDBImpl(Class<ApolloApplication> type, DB db) {
-        super(type, db);
+    public ApolloApplicationRepositoryMongoDBImpl(DB db) {
+        super(ApolloApplication.class, String.class, db);
     }
 }
