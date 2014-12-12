@@ -9,7 +9,6 @@ import com.apollo.common.repository.BaseRepository;
 import com.google.gson.Gson;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
-import java.io.Serializable;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +23,10 @@ import org.bson.types.ObjectId;
  * @param <T>
  * @param <PK>
  */
-public abstract class BaseRepositoryMongoDBImpl<T, PK extends Serializable>
-        implements BaseRepository<T, PK> {
+public abstract class BaseRepositoryMongoDBImpl<T, String>
+        implements BaseRepository<T, String> {
 
     private Class<T> type;
-    private Class<PK> idType;
 
     private final DB db;
     private final DBCollection collection;
@@ -36,9 +34,8 @@ public abstract class BaseRepositoryMongoDBImpl<T, PK extends Serializable>
     private static final Logger logger = LoggerFactory
             .getLogger(BaseRepositoryMongoDBImpl.class);
 
-    public BaseRepositoryMongoDBImpl(Class<T> type, Class<PK> idType, DB db) {
+    public BaseRepositoryMongoDBImpl(Class<T> type, DB db) {
         this.type = type;
-        this.idType = idType;
         this.db = db;
         this.collection = db.getCollection(type.getSimpleName());
     }
@@ -53,10 +50,6 @@ public abstract class BaseRepositoryMongoDBImpl<T, PK extends Serializable>
 
     public Class<T> getType() {
         return type;
-    }
-
-    public Class<PK> getId() {
-        return idType;
     }
 
     @Override
@@ -75,67 +68,85 @@ public abstract class BaseRepositoryMongoDBImpl<T, PK extends Serializable>
     }
 
     @Override
-    public void delete(PK id) {
-        //find the record and remove.
-        logger.debug("delete-find:{}", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
-        BulkWriteOperation builder = collection.initializeOrderedBulkOperation();
-        builder.find(new BasicDBObject("_id", id)).removeOne();
+    public void delete(String id) {
+        //build query with id.
+        logger.debug("delete-build query:{}", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
+        BasicDBObject query = null;
+        try {
+            query = new BasicDBObject("_id", new ObjectId((java.lang.String) id));
+        } catch (IllegalArgumentException i) {
+            logger.debug("delete-build query-invalid id:{}", ToStringBuilder.reflectionToString(id + "\n" + i.toString(), ToStringStyle.MULTI_LINE_STYLE));
+            return;
+        }
 
-        //execute (or flush in SQL)
+        //find the object
+        logger.debug("delete-find:{}", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
+        DBObject dbObject = getCollection().findOne(query);
+        if (dbObject == null) {
+            logger.error("delete-find:{} - could not find object.", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
+            return;
+        }
+
+        //execute
         logger.debug("delete-execute:{}", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
-        BulkWriteResult result = builder.execute();
+        WriteResult result = getCollection().remove(dbObject);
 
         //check for success
-        if (result.getRemovedCount() != 1) {
-            logger.error("delete-execute:{} - failed to delete", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
-        } else {
+        if (result.isUpdateOfExisting()) {
             logger.debug("delete-execute:{} - sucessfully deleted", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
+        } else {
+            logger.error("delete-execute:{} - failed to delete", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
         }
     }
 
     @Override
-    public void update(T transientObject) {
+    public void update(String id, T transientObject) {
         //build the db object
         logger.debug("update-build replacement:{}", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
         Gson g = new Gson();
-        DBObject dbObject = (DBObject) JSON.parse(g.toJson(transientObject, type));
+        BasicDBObject query = new BasicDBObject("_id", new ObjectId((java.lang.String) id));
 
         //find the record and remove.
         logger.debug("update-find:{}", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
-        BulkWriteOperation builder = getCollection().initializeOrderedBulkOperation();
-        builder.find(dbObject).replaceOne(dbObject);
+        DBObject existingObj = getCollection().findOne(query);
+        if (existingObj == null) {
+            logger.error("update-find:{} - could not find object.", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
+            return;
+        }
 
-        //execute (or flush in SQL)
+        //save the object
         logger.debug("update-execute:{}", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
-        BulkWriteResult result = builder.execute();
+        DBObject newDBObject = (DBObject) JSON.parse(g.toJson(transientObject, type));
+        existingObj = newDBObject;
+        WriteResult result = getCollection().save(existingObj);
 
         //check for success, mongo recommends that we see if the modified count is available in the first place
-        if (result.isModifiedCountAvailable()) {
-            if (result.getModifiedCount() != 1) {
-                logger.error("update-execute:{} - failed to update", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
-            } else {
-                logger.debug("update-execute:{} - sucessfully deleted", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
-            }
+        if (result.isUpdateOfExisting()) {
+            logger.debug("update-execute:{} - sucessfully updated", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
         } else {
-            logger.debug("update-execute:{} - could not verify update", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
+            logger.error("update-execute:{} - failed to update", ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
         }
     }
 
     @Override
-    public T get(PK id) {
+    public T get(String id) {
         logger.debug("get-find:{}", ToStringBuilder.reflectionToString(type.getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
-        DBObject dbObject = collection.findOne(new BasicDBObject("_id", id));
+        DBObject dbObject = collection.findOne(new BasicDBObject("_id", new ObjectId((java.lang.String) id)));
 
         if (dbObject == null) {
             logger.debug("get-object not found:{}" + id, ToStringBuilder.reflectionToString(type.getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
+            return null;
         } else {
             logger.debug("get-object found:{}" + id, ToStringBuilder.reflectionToString(type.getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
         }
-        return type.cast(dbObject);
+
+        logger.debug("get-object serialize:{}" + id, ToStringBuilder.reflectionToString(type.getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
+        Gson g = new Gson();
+        return g.fromJson(JSON.serialize(dbObject), type);
     }
 
     @Override
-    public void add(T newInstance) {
+    public String add(T newInstance) {
         //build the db object
         logger.debug("add-build DBObject:{}", ToStringBuilder.reflectionToString(newInstance, ToStringStyle.MULTI_LINE_STYLE));
         Gson g = new Gson();
@@ -148,7 +159,6 @@ public abstract class BaseRepositoryMongoDBImpl<T, PK extends Serializable>
         } else {
             logger.error("add-insert-error:{}", ToStringBuilder.reflectionToString(newInstance, ToStringStyle.MULTI_LINE_STYLE));
         }
-        
-        //Object retID = dbObject.get("_id");
+        return (String) dbObject.get("_id").toString();
     }
 }

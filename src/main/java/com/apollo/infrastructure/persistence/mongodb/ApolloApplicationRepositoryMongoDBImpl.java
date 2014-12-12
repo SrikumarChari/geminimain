@@ -18,6 +18,6 @@ public class ApolloApplicationRepositoryMongoDBImpl extends BaseRepositoryMongoD
         implements ApolloApplicationRepository {
 
     public ApolloApplicationRepositoryMongoDBImpl(DB db) {
-        super(ApolloApplication.class, String.class, db);
+        super(ApolloApplication.class, db);
     }
 }

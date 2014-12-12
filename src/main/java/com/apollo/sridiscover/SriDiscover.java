@@ -47,14 +47,14 @@ public class SriDiscover {
             //response.header("Access-Control-Allow-Headers", "x-requested-with");
             response.status(200);
             try {
-                List<ApolloApplication> l = getApplicationsFromDB();
-                if (l == null) {
+                List<ApolloApplication> apps = getApplicationsFromDB();
+                if (apps == null) {
                     return "No Applications";
                 } else {
-                    return l;
+                    return apps;
                 }
             } catch (UnknownHostException ex) {
-                Logger.getLogger(SriDiscover.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(SriDiscover.class.getName()).log(Level.SEVERE, null, "Severe Error: Unknown host\n" + ex);
                 return "Severe Error: Unknown host";
             }
             //return applications;
@@ -176,7 +176,7 @@ public class SriDiscover {
         Integer serverMin = 10000000, serverMax = 20000000;
         Integer networkMin = 30000000, networkMax = 40000000;
         Integer appMin = 50000000, appMax = 60000000;
-        int numServers = 4000, numNetworks = 500, numApps = 20;
+        int numServers = 40, numNetworks = 5, numApps = 2;
 
         MongoClient mongoClient = new MongoClient("localhost");
         DB db = mongoClient.getDB("Apollo");
@@ -253,9 +253,21 @@ public class SriDiscover {
 
             //add to database
             applications.add(a);
-            appDB.add(a);
+            String id = appDB.add(a);
+            a.setId(id);
         }
 
+        //just change the name of one of the application objects in the database
+        ApolloApplication a = applications.get(0);
+        a.setName("Srikumar Chari");
+        appDB.update(a.getId(), a);
+
+        //get the second application
+        a = appDB.get(a.getId());
+        
+        //delete the second application
+        appDB.delete(a.getId());
+        
         //close the db client
         mongoClient.close();
     }

@@ -5,7 +5,6 @@
  */
 package com.apollo.common.repository;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -14,13 +13,13 @@ import java.util.List;
  * @param <T>
  * @param <PK>
  */
-public interface BaseRepository <T, PK extends Serializable> {
+public interface BaseRepository <T, PK> {
 
     /** Persist the newInstance object into database
      * @param newInstance
      * @return the id of the object inserted 
      */
-    void add(T newInstance);
+    PK add(T newInstance);
 
     /** Retrieve an object that was previously persisted to the database using
      *   the indicated id as primary key
@@ -31,7 +30,7 @@ public interface BaseRepository <T, PK extends Serializable> {
 
     /** Save changes made to a persistent object.
      * @param transientObject */
-    void update(T transientObject);
+    void update(PK id, T transientObject);
 
     /** Remove an object from persistent storage in the database
      * @param id */
