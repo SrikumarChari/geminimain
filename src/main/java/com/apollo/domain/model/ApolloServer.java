@@ -3,19 +3,22 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.apollo.sridiscover;
+package com.apollo.domain.model;
 
+import com.apollo.common.repository.EntityMongoDB;
 import com.google.common.net.InetAddresses;
 import java.net.InetAddress;
+import org.mongodb.morphia.annotations.Entity;
+import org.mongodb.morphia.annotations.Reference;
 
 /**
  *
  * @author schari
  */
-class ApolloServer {
-    private String id;
-    private String networkID; //network to which this server belongs to
-    private String appID; //application to which this server belongs to
+@Entity("ApolloServer")
+public class ApolloServer extends EntityMongoDB {
+//    private String networkID; //network to which this server belongs to
+//    private String appID; //application to which this server belongs to
     private String name;
     private String description;
     private InetAddress address;
@@ -28,30 +31,12 @@ class ApolloServer {
     private String admin;
     private String password;
 
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getNetworkID() {
-        return networkID;
-    }
-
-    public void setNetworkID(String networkID) {
-        this.networkID = networkID;
-    }
-
-    public String getAppID() {
-        return appID;
-    }
-
-    public void setAppID(String appID) {
-        this.appID = appID;
-    }
-
+    @Reference
+    private ApolloApplication app; // application to which this server belongs to
+    
+    @Reference
+    private ApolloNetwork network; //network to which this server belongs to
+    
     public String getName() {
         return name;
     }
@@ -136,5 +121,21 @@ class ApolloServer {
 
     public void setPassword(String password) {
         this.password = password;
-    }    
+    }
+
+    public ApolloApplication getApp() {
+        return app;
+    }
+
+    public void setApp(ApolloApplication app) {
+        this.app = app;
+    }
+
+    public ApolloNetwork getNetwork() {
+        return network;
+    }
+
+    public void setNetwork(ApolloNetwork network) {
+        this.network = network;
+    }
 }

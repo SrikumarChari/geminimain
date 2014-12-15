@@ -13,13 +13,13 @@ import java.util.List;
  * @param <T>
  * @param <PK>
  */
-public interface BaseRepository <T, PK> {
+public interface BaseRepository <T extends Entity, PK> {
 
     /** Persist the newInstance object into database
      * @param newInstance
      * @return the id of the object inserted 
      */
-    PK add(T newInstance);
+    void add(T newInstance);
 
     /** Retrieve an object that was previously persisted to the database using
      *   the indicated id as primary key

@@ -5,19 +5,24 @@
  */
 package com.apollo.sridiscover;
 
-import com.apollo.domain.model.application.ApolloApplication;
-import com.apollo.infrastructure.persistence.mongodb.ApolloApplicationRepositoryMongoDBImpl;
+import com.apollo.domain.model.ApolloServer;
+import com.apollo.domain.model.ApolloNetwork;
+import com.apollo.domain.model.ApolloApplication;
+import com.apollo.domain.repository.impl.ApolloApplicationRepositoryMongoDBImpl;
+import com.apollo.domain.repository.impl.ApolloNetworkRepositoryMongoDBImpl;
+import com.apollo.domain.repository.impl.ApolloServerRepositoryMongoDBImpl;
 import com.google.common.net.InetAddresses;
-import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
 import java.util.ArrayList;
 import static spark.Spark.*;
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.List;
+import java.util.Random;
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
+import org.pmw.tinylog.Logger;
 import spark.Request;
 import spark.Response;
 
@@ -33,8 +38,18 @@ public class SriDiscover {
     static ArrayList<ApolloApplication> applications = new ArrayList<>();
     static ArrayList<ApolloServer> servers = new ArrayList<>();
     static ArrayList<ApolloNetwork> networks = new ArrayList<>();
+    static MongoClient mongoClient;
+    static Morphia morphia = new Morphia();
+    static Datastore ds;
 
     public static void main(String[] args) throws IOException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        //create table for the application, networks and servers
+        morphia.map(ApolloApplication.class).map(ApolloNetwork.class).map(ApolloServer.class);
+        ds = morphia.createDatastore(mongoClient, "Apollo");
+
         //create some data to transfer to the front end
         createSampleData();
 
@@ -54,7 +69,7 @@ public class SriDiscover {
                     return apps;
                 }
             } catch (UnknownHostException ex) {
-                Logger.getLogger(SriDiscover.class.getName()).log(Level.SEVERE, null, "Severe Error: Unknown host\n" + ex);
+                Logger.error("Severe Error: Unknown host - {}\n", "localhost");
                 return "Severe Error: Unknown host";
             }
             //return applications;
@@ -74,20 +89,20 @@ public class SriDiscover {
         }, new JsonTransformer());
 
         //return all networks related to application with ID = ':id'
-        get("/applications/:id/networks", "application/json", (request, response) -> {
+        get("/applications/:name/networks", "application/json", (request, response) -> {
             response.header("Access-Control-Allow-Origin", "*");
-            String appID = request.params(":id");
-            for (ApolloApplication a : applications) {
-                if (a.getId().equals(appID)) {
-                    List<ApolloNetwork> retNetworks = new ArrayList<>();
-                    for (ApolloNetwork n : networks) {
-                        if (n.getAppID().equals(appID)) {
-                            retNetworks.add(n);
-                        }
-                    }
-                    return retNetworks;
-                }
-            }
+            String appID = request.params(":name");
+//            for (ApolloApplication a : applications) {
+//                if (a.getId().equals(appID)) {
+//                    List<ApolloNetwork> retNetworks = new ArrayList<>();
+//                    for (ApolloNetwork n : networks) {
+//                        if (n.getAppID().equals(appID)) {
+//                            retNetworks.add(n);
+//                        }
+//                    }
+//                    return retNetworks;
+//                }
+//            }
             response.status(404);
             return "Application with ID: " + appID + " not found!";
         }, new JsonTransformer());
@@ -96,17 +111,17 @@ public class SriDiscover {
         get("/applications/:id/servers", "application/json", (Request request, Response response) -> {
             response.header("Access-Control-Allow-Origin", "*");
             String appID = request.params(":id");
-            for (ApolloApplication a : applications) {
-                if (a.getId().equals(appID)) {
-                    List<ApolloServer> retServers = new ArrayList<>();
-                    for (ApolloServer s : servers) {
-                        if (s.getAppID().equals(appID)) {
-                            retServers.add(s);
-                        }
-                    }
-                    return retServers;
-                }
-            }
+//            for (ApolloApplication a : applications) {
+//                if (a.getId().equals(appID)) {
+//                    List<ApolloServer> retServers = new ArrayList<>();
+//                    for (ApolloServer s : servers) {
+//                        if (s.getAppID().equals(appID)) {
+//                            retServers.add(s);
+//                        }
+//                    }
+//                    return retServers;
+//                }
+//            }
             response.status(404);
             return "Application with ID: " + appID + " not found!";
         }, new JsonTransformer());
@@ -116,21 +131,21 @@ public class SriDiscover {
             response.header("Access-Control-Allow-Origin", "*");
             String appID = request.params(":appID");
             String nID = request.params(":nID");
-            for (ApolloApplication a : applications) {
-                if (a.getId().equals(appID)) {
-                    List<ApolloServer> retServers = new ArrayList<>();
-                    for (ApolloNetwork n : networks) {
-                        if (n.getId().equals(nID)) {
-                            for (ApolloServer s : servers) {
-                                if (s.getNetworkID().equals(nID) && s.getAppID().equals(appID)) {
-                                    retServers.add(s);
-                                }
-                            }
-                        }
-                    }
-                    return retServers;
-                }
-            }
+//            for (ApolloApplication a : applications) {
+//                if (a.getId().equals(appID)) {
+//                    List<ApolloServer> retServers = new ArrayList<>();
+//                    for (ApolloNetwork n : networks) {
+//                        if (n.getId().equals(nID)) {
+//                            for (ApolloServer s : servers) {
+//                                if (s.getNetworkID().equals(nID) && s.getAppID().equals(appID)) {
+//                                    retServers.add(s);
+//                                }
+//                            }
+//                        }
+//                    }
+//                    return retServers;
+//                }
+//            }
             response.status(404);
             return "Application with ID: " + appID + " not found!";
         }, new JsonTransformer());
@@ -169,6 +184,8 @@ public class SriDiscover {
             return "Server with ID: " + sID + " not found!";
         }, new JsonTransformer());
 
+        //close the db client
+        mongoClient.close();
     }
 
     private static void createSampleData() throws UnknownHostException {
@@ -178,30 +195,24 @@ public class SriDiscover {
         Integer appMin = 50000000, appMax = 60000000;
         int numServers = 40, numNetworks = 5, numApps = 2;
 
-        MongoClient mongoClient = new MongoClient("localhost");
-        DB db = mongoClient.getDB("Apollo");
-        Set<String> cols = db.getCollectionNames();
-        for (String s : cols) {
-            System.out.println(s);
-            if (s.equals(ApolloApplication.class.getSimpleName())) {
-                DBCollection col = db.getCollection(s);
-                col.drop();
-            }
-        }
+        //for now use a clean all the tables before generating the data
+        ds.getCollection(ApolloApplication.class).drop();
+        ds.getCollection(ApolloNetwork.class).drop();
+        ds.getCollection(ApolloServer.class).drop();
 
         //create the application repository object
-        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(db);
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(ds);
+        ApolloNetworkRepositoryMongoDBImpl netDB = new ApolloNetworkRepositoryMongoDBImpl(ds);
+        ApolloServerRepositoryMongoDBImpl srvDB = new ApolloServerRepositoryMongoDBImpl(ds);
 
         //first the server objects
         Random sRand = new Random();
         for (int i = 0; i < numServers; i++) {
             String serverID = String.valueOf(sRand.nextInt((serverMax - serverMin) + 1) + serverMin);
             ApolloServer s = new ApolloServer();
-            s.setId(serverID);
             s.setName(serverID + "name");
             s.setDescription(serverID + " description");
             s.setAddress(InetAddresses.forString(InetAddresses.fromInteger(Integer.parseInt(serverID)).getHostAddress()));
-            String tmp = s.getAddress().toString();
             s.setSubnetMask("255.255.255.0");
             s.setPort(443);
             s.setManufacturer(serverID + " manu");
@@ -209,6 +220,7 @@ public class SriDiscover {
             s.setLocation(serverID + " locker");
             s.setAdmin(serverID + " admin");
             s.setPassword(serverID + " password");
+            srvDB.add(s);
             servers.add(s);
         }
 
@@ -217,15 +229,15 @@ public class SriDiscover {
         for (int i = 0; i < numNetworks; i++) {
             String networkID = String.valueOf(nRand.nextInt((networkMax - networkMin) + 1) + networkMin);
             ApolloNetwork n = new ApolloNetwork();
-            n.setId(networkID);
             n.setNetworkType("Class C");
             n.setStart(InetAddresses.forString(InetAddresses.fromInteger(Integer.parseInt(networkID)).getHostAddress()));
             n.setEnd(InetAddresses.increment(n.getStart()));
 
             //add 'numServer' divided by 'numNetwork' servers from the servers array to each network
             for (int start = i * (numServers / numNetworks), j = 0; j < (numServers / numNetworks) && (start + j) < numServers; j++) {
-                servers.get(start + j).setNetworkID(networkID);
+                n.addServer(servers.get(start + j));
             }
+            netDB.add(n);
             networks.add(n);
         }
 
@@ -234,7 +246,7 @@ public class SriDiscover {
         for (int i = 0; i < numApps; i++) {
             String appID = String.valueOf(aRand.nextInt((appMax - appMin) + 1) + appMin);
             ApolloApplication a = new ApolloApplication();
-            a.setId(appID.toString());
+            //a.setId(appID.toString());
             a.setName(appID + " name");
             a.setDescription(appID + " description");
             a.setCustom(appID + " custom");
@@ -243,50 +255,35 @@ public class SriDiscover {
 
             //add 'numNetworks' divided by 'numApps' networks from the networks array to each applicaiton
             for (int start = i * (numNetworks / numApps), j = 0; j < (numNetworks / numApps) && (start + j) < numNetworks; j++) {
-                networks.get(start + j).setAppID(appID);
+                a.addNetwork(networks.get(start + j));
             }
 
             //add 'numServers' divided by 'numApps' servers from the servers array to each applicaiton
             for (int start = i * (numServers / numApps), j = 0; j < (numServers / numApps) && (start + j) < numServers; j++) {
-                servers.get(start + j).setAppID(appID);
+                a.addServer(servers.get(start + j));
             }
 
             //add to database
             applications.add(a);
-            String id = appDB.add(a);
-            a.setId(id);
+            appDB.add(a);
         }
 
         //just change the name of one of the application objects in the database
         ApolloApplication a = applications.get(0);
         a.setName("Srikumar Chari");
-        appDB.update(a.getId(), a);
+        appDB.update(a.getId().toString(), a);
 
         //get the second application
-        a = appDB.get(a.getId());
-        
+        a = appDB.getAppByName(a.getName());
+
         //delete the second application
-        appDB.delete(a.getId());
-        
-        //close the db client
-        mongoClient.close();
+        appDB.delete(a.getId().toString());
     }
 
     private static List<ApolloApplication> getApplicationsFromDB() throws UnknownHostException {
-        MongoClient mongoClient = new MongoClient("localhost");
-        DB db = mongoClient.getDB("Apollo");
-        Set<String> cols = db.getCollectionNames();
-        for (String s : cols) {
-            if (s.equals(ApolloApplication.class.getSimpleName())) {
-                ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(db);
-                List<ApolloApplication> l = appDB.list();
-                //close the db client
-                mongoClient.close();
-                return l;
-            }
-        }
-        //close the db client
-        mongoClient.close();
-        return null;
+        morphia.map(ApolloApplication.class);
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(ds);
+        List<ApolloApplication> l = appDB.list();
+        return l;
     }
 }

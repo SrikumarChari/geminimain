@@ -3,9 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.apollo.domain.model.application;
+package com.apollo.domain.repository;
 
 import com.apollo.common.repository.BaseRepository;
+import com.apollo.domain.model.ApolloServer;
 
 /**
  * 
@@ -15,6 +16,6 @@ import com.apollo.common.repository.BaseRepository;
  * 
  * @author schari
  */
-public interface ApolloApplicationRepository extends BaseRepository<ApolloApplication, String>  {
+public interface ApolloServerRepository extends BaseRepository<ApolloServer, String>  {
     
 }
