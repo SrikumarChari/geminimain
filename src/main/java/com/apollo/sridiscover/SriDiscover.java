@@ -196,9 +196,9 @@ public class SriDiscover {
         int numServers = 40, numNetworks = 5, numApps = 2;
 
         //for now use a clean all the tables before generating the data
-        ds.getCollection(ApolloApplication.class).drop();
-        ds.getCollection(ApolloNetwork.class).drop();
-        ds.getCollection(ApolloServer.class).drop();
+//        ds.getCollection(ApolloApplication.class).drop();
+//        ds.getCollection(ApolloNetwork.class).drop();
+//        ds.getCollection(ApolloServer.class).drop();
 
         //create the application repository object
         ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(ds);

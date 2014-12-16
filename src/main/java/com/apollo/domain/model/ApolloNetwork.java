@@ -7,9 +7,8 @@ package com.apollo.domain.model;
 
 import com.apollo.common.repository.EntityMongoDB;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Reference;
 import org.pmw.tinylog.Logger;
@@ -18,56 +17,57 @@ import org.pmw.tinylog.Logger;
  *
  * @author schari
  */
-@Entity("ApolloNetwork")
+@Entity
 public class ApolloNetwork extends EntityMongoDB {
-    
+
     private InetAddress start;
     private InetAddress end;
     private String networkType;
-    
-    @Reference
-    private ApolloApplication app;
-    
+
+//    @Reference
+//    private ApolloApplication app;
+
     @Reference
     List<ApolloServer> servers;
-    
+
     public ApolloNetwork() {
         this.networkType = "";
+        servers = new ArrayList();
+        //app = new ApolloApplication();
     }
-    
+
     public InetAddress getStart() {
         return start;
     }
-    
+
     public void setStart(InetAddress start) {
         this.start = start;
     }
-    
+
     public InetAddress getEnd() {
         return end;
     }
-    
+
     public void setEnd(InetAddress end) {
         this.end = end;
     }
-    
+
     public String getNetworkType() {
         return networkType;
     }
-    
+
     public void setNetworkType(String networkType) {
         this.networkType = networkType;
     }
 
-    public ApolloApplication getApp() {
-        return app;
-    }
+//    public ApolloApplication getApp() {
+//        return app;
+//    }
+//
+//    public void setApp(ApolloApplication app) {
+//        this.app = app;
+//    }
 
-    public void setApp(ApolloApplication app) {
-        this.app = app;
-    }
-
-    
     public void addServer(ApolloServer s) {
         if (servers.contains(s)) {
             Logger.error("Did not add server:{}  already exists in network with start: {} and end: {}", s.getName(), start, end);
@@ -76,11 +76,12 @@ public class ApolloNetwork extends EntityMongoDB {
                 Logger.info("Failed to add server: " + s.getName());
             } else {
                 //add a connection between this network and the server
-                s.setNetwork(this);
+                Logger.info("Successfully added server: {}", s.getName());
+                //s.setNetwork(this);
             }
         }
     }
-    
+
     public boolean deleteServer(ApolloServer s) {
         if (servers.contains(s)) {
             if (!servers.remove(s)) {
@@ -88,7 +89,8 @@ public class ApolloNetwork extends EntityMongoDB {
                 return false;
             } else {
                 //remove the connection between this network and the server
-                s.setNetwork(null);
+                //s.setNetwork(null);
+                Logger.info("Successfully deleted server: {}", s.getName());
                 return true;
             }
         } else {

@@ -6,6 +6,7 @@
 package com.apollo.domain.model;
 
 import com.apollo.common.repository.EntityMongoDB;
+import java.util.ArrayList;
 import java.util.List;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Reference;
@@ -15,7 +16,7 @@ import org.pmw.tinylog.Logger;
  *
  * @author schari
  */
-@Entity("ApolloApplication")
+@Entity
 public class ApolloApplication extends EntityMongoDB {
 
     private String name;
@@ -25,10 +26,15 @@ public class ApolloApplication extends EntityMongoDB {
     private String location; //TODO: convert to a geo coordinate 
 
     @Reference
-    List<ApolloNetwork> networks;
+    private final List<ApolloNetwork> networks;
 
     @Reference
-    List<ApolloServer> servers;
+    private final List<ApolloServer> servers;
+
+    public ApolloApplication() {
+        networks = new ArrayList();
+        servers = new ArrayList();
+    }
 
     public String getName() {
         return name;
@@ -77,7 +83,7 @@ public class ApolloApplication extends EntityMongoDB {
             if (!servers.add(s)) {
                 Logger.debug("Failed to add server: {}", s.getName());
             } else {
-                s.setApp(this);
+                //s.setApp(this);
                 Logger.debug("Successfully added server: {} to application: ", s.getName(), getName());
             }
         }
@@ -90,7 +96,7 @@ public class ApolloApplication extends EntityMongoDB {
                 return false;
             } else {
                 //remove the connection between this application and the deleted server
-                s.setApp(null);
+                //s.setApp(null);
                 Logger.debug("Successfull deleted server: {}", s.getName());
                 return true;
             }
@@ -107,7 +113,7 @@ public class ApolloApplication extends EntityMongoDB {
             if (!networks.add(n)) {
                 Logger.error("Failed to add network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
             } else {
-                n.setApp(this);
+                //n.setApp(this);
                 Logger.debug("Successfully added network, start: {} end: {} to application {}", n.getStart(), n.getEnd(), getName());
             }
         }
@@ -120,7 +126,7 @@ public class ApolloApplication extends EntityMongoDB {
                 return false;
             } else {
                 //remove the connection between this application and the deleted network
-                n.setApp(null);
+                //n.setApp(null);
                 Logger.debug("Successfully deleted network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
                 return true;
             }

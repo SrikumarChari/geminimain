@@ -15,7 +15,7 @@ import org.mongodb.morphia.annotations.Reference;
  *
  * @author schari
  */
-@Entity("ApolloServer")
+@Entity
 public class ApolloServer extends EntityMongoDB {
 //    private String networkID; //network to which this server belongs to
 //    private String appID; //application to which this server belongs to
@@ -31,11 +31,16 @@ public class ApolloServer extends EntityMongoDB {
     private String admin;
     private String password;
 
-    @Reference
-    private ApolloApplication app; // application to which this server belongs to
-    
-    @Reference
-    private ApolloNetwork network; //network to which this server belongs to
+//    @Reference
+//    private ApolloApplication app; // application to which this server belongs to
+//    
+//    @Reference
+//    private ApolloNetwork network; //network to which this server belongs to
+
+    public ApolloServer() {
+//        app = new ApolloApplication();
+//        network = new ApolloNetwork();
+    }
     
     public String getName() {
         return name;
@@ -123,19 +128,19 @@ public class ApolloServer extends EntityMongoDB {
         this.password = password;
     }
 
-    public ApolloApplication getApp() {
-        return app;
-    }
-
-    public void setApp(ApolloApplication app) {
-        this.app = app;
-    }
-
-    public ApolloNetwork getNetwork() {
-        return network;
-    }
-
-    public void setNetwork(ApolloNetwork network) {
-        this.network = network;
-    }
+//    public ApolloApplication getApp() {
+//        return app;
+//    }
+//
+//    public void setApp(ApolloApplication app) {
+//        this.app = app;
+//    }
+//
+//    public ApolloNetwork getNetwork() {
+//        return network;
+//    }
+//
+//    public void setNetwork(ApolloNetwork network) {
+//        this.network = network;
+//    }
 }
