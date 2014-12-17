@@ -81,10 +81,10 @@ public class ApolloApplication extends EntityMongoDB {
             Logger.error("Did not add server:{}  already exists in application {}", s.getName(), getName());
         } else {
             if (!servers.add(s)) {
-                Logger.debug("Failed to add server: {}", s.getName());
+                Logger.info("Failed to add server: {}", s.getName());
             } else {
                 //s.setApp(this);
-                Logger.debug("Successfully added server: {} to application: ", s.getName(), getName());
+                Logger.info("Successfully added server: {} to application: ", s.getName(), getName());
             }
         }
     }
@@ -92,12 +92,12 @@ public class ApolloApplication extends EntityMongoDB {
     public boolean deleteServer(ApolloServer s) {
         if (servers.contains(s)) {
             if (!servers.remove(s)) {
-                Logger.debug("Failed to delete server: " + s.getName());
+                Logger.info("Failed to delete server: " + s.getName());
                 return false;
             } else {
                 //remove the connection between this application and the deleted server
                 //s.setApp(null);
-                Logger.debug("Successfull deleted server: {}", s.getName());
+                Logger.info("Successfull deleted server: {}", s.getName());
                 return true;
             }
         } else {
@@ -108,13 +108,13 @@ public class ApolloApplication extends EntityMongoDB {
 
     public void addNetwork(ApolloNetwork n) {
         if (networks.contains(n)) {
-            Logger.debug("Did not add network start: {} end: {}, already exists in application {}", n.getStart(), n.getEnd(), getName());
+            Logger.info("Did not add network start: {} end: {}, already exists in application {}", n.getStart(), n.getEnd(), getName());
         } else {
             if (!networks.add(n)) {
                 Logger.error("Failed to add network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
             } else {
                 //n.setApp(this);
-                Logger.debug("Successfully added network, start: {} end: {} to application {}", n.getStart(), n.getEnd(), getName());
+                Logger.info("Successfully added network, start: {} end: {} to application {}", n.getStart(), n.getEnd(), getName());
             }
         }
     }
@@ -127,11 +127,11 @@ public class ApolloApplication extends EntityMongoDB {
             } else {
                 //remove the connection between this application and the deleted network
                 //n.setApp(null);
-                Logger.debug("Successfully deleted network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
+                Logger.info("Successfully deleted network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
                 return true;
             }
         } else {
-            Logger.debug("Did not delete network, start: {} end: {} - network does not exist in application {}", n.getStart(), n.getEnd(), getName());
+            Logger.info("Did not delete network, start: {} end: {} - network does not exist in application {}", n.getStart(), n.getEnd(), getName());
             return false;
         }
     }

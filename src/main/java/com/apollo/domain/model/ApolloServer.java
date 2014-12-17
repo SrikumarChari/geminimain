@@ -24,6 +24,7 @@ public class ApolloServer extends EntityMongoDB {
     private InetAddress address;
     private String subnetMask;
     private Integer port;
+    private String os;
     private String type; //TODO: Convert to an enum when the types are finalized
     private String manufacturer;
     private Integer backupSize = 0;
@@ -71,6 +72,14 @@ public class ApolloServer extends EntityMongoDB {
 
     public void setPort(Integer port) {
         this.port = port;
+    }
+
+    public String getOs() {
+        return os;
+    }
+
+    public void setOs(String os) {
+        this.os = os;
     }
 
     public void setType(String type) {

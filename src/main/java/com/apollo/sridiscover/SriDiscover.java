@@ -11,8 +11,8 @@ import com.apollo.domain.model.ApolloApplication;
 import com.apollo.domain.repository.impl.ApolloApplicationRepositoryMongoDBImpl;
 import com.apollo.domain.repository.impl.ApolloNetworkRepositoryMongoDBImpl;
 import com.apollo.domain.repository.impl.ApolloServerRepositoryMongoDBImpl;
+import com.codahale.metrics.Slf4jReporter;
 import com.google.common.net.InetAddresses;
-import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
 import java.util.ArrayList;
 import static spark.Spark.*;
@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Random;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
+import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Logger;
+import org.pmw.tinylog.Level;
 import spark.Request;
 import spark.Response;
 
@@ -50,6 +52,9 @@ public class SriDiscover {
         morphia.map(ApolloApplication.class).map(ApolloNetwork.class).map(ApolloServer.class);
         ds = morphia.createDatastore(mongoClient, "Apollo");
 
+        //set the current logging level to debug
+        Configurator.currentConfig().level(Level.DEBUG).activate();
+        
         //create some data to transfer to the front end
         createSampleData();
 
@@ -76,16 +81,11 @@ public class SriDiscover {
         }, new JsonTransformer());
 
         //return application with ID = ':id'
-        get("/applications/:id", "application/json", (request, response) -> {
+        get("/applications/:name", "application/json", (request, response) -> {
             response.header("Access-Control-Allow-Origin", "*");
-            String appID = request.params(":id");
-            for (ApolloApplication a : applications) {
-                if (a.getId().equals(appID)) {
-                    return a;
-                }
-            }
+            String appName = request.params(":name");
             response.status(404);
-            return "Application with ID: " + appID + " not found!";
+            return "Application with ID: " + appName + " not found!";
         }, new JsonTransformer());
 
         //return all networks related to application with ID = ':id'
@@ -185,7 +185,7 @@ public class SriDiscover {
         }, new JsonTransformer());
 
         //close the db client
-        mongoClient.close();
+        //mongoClient.close();
     }
 
     private static void createSampleData() throws UnknownHostException {
@@ -196,9 +196,9 @@ public class SriDiscover {
         int numServers = 40, numNetworks = 5, numApps = 2;
 
         //for now use a clean all the tables before generating the data
-//        ds.getCollection(ApolloApplication.class).drop();
-//        ds.getCollection(ApolloNetwork.class).drop();
-//        ds.getCollection(ApolloServer.class).drop();
+        ds.getCollection(ApolloApplication.class).drop();
+        ds.getCollection(ApolloNetwork.class).drop();
+        ds.getCollection(ApolloServer.class).drop();
 
         //create the application repository object
         ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(ds);
@@ -215,6 +215,7 @@ public class SriDiscover {
             s.setAddress(InetAddresses.forString(InetAddresses.fromInteger(Integer.parseInt(serverID)).getHostAddress()));
             s.setSubnetMask("255.255.255.0");
             s.setPort(443);
+            s.setOs("Linux");
             s.setManufacturer(serverID + " manu");
             s.setBackupSize(Integer.parseInt(serverID) + 10);
             s.setLocation(serverID + " locker");
@@ -276,12 +277,13 @@ public class SriDiscover {
         //get the second application
         a = appDB.getAppByName(a.getName());
 
-        //delete the second application
-        appDB.delete(a.getId().toString());
+        List<ApolloApplication> lApps = appDB.list();
+        List<ApolloNetwork> lNets = netDB.list();
+        List<ApolloServer> lSrvs = srvDB.list();
     }
 
     private static List<ApolloApplication> getApplicationsFromDB() throws UnknownHostException {
-        morphia.map(ApolloApplication.class);
+        //morphia.map(ApolloApplication.class);
         ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(ds);
         List<ApolloApplication> l = appDB.list();
         return l;

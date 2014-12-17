@@ -33,7 +33,6 @@ public class ApolloNetwork extends EntityMongoDB {
     public ApolloNetwork() {
         this.networkType = "";
         servers = new ArrayList();
-        //app = new ApolloApplication();
     }
 
     public InetAddress getStart() {
@@ -85,7 +84,7 @@ public class ApolloNetwork extends EntityMongoDB {
     public boolean deleteServer(ApolloServer s) {
         if (servers.contains(s)) {
             if (!servers.remove(s)) {
-                Logger.info("Failed to delete server: " + s.getName());
+                Logger.error("Failed to delete server: " + s.getName());
                 return false;
             } else {
                 //remove the connection between this network and the server
@@ -94,7 +93,7 @@ public class ApolloNetwork extends EntityMongoDB {
                 return true;
             }
         } else {
-            Logger.info("Did not delete server: {} - server does not exist", s.getName());
+            Logger.error("Did not delete server: {} - server does not exist", s.getName());
             return false;
         }
     }
