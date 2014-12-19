@@ -49,12 +49,12 @@ public class SriDiscover {
         mongoClient = new MongoClient("localhost");
 
         //create table for the application, networks and servers
-        morphia.map(ApolloApplication.class).map(ApolloNetwork.class).map(ApolloServer.class);
+        //morphia.map(ApolloApplication.class).map(ApolloNetwork.class).map(ApolloServer.class);
         ds = morphia.createDatastore(mongoClient, "Apollo");
 
         //set the current logging level to debug
         Configurator.currentConfig().level(Level.DEBUG).activate();
-        
+
         //create some data to transfer to the front end
         createSampleData();
 
@@ -65,12 +65,12 @@ public class SriDiscover {
             //response.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
             //response.header("Access-Control-Max-Age", "3600");
             //response.header("Access-Control-Allow-Headers", "x-requested-with");
-            response.status(200);
             try {
                 List<ApolloApplication> apps = getApplicationsFromDB();
                 if (apps == null) {
                     return "No Applications";
                 } else {
+                    response.status(200);
                     return apps;
                 }
             } catch (UnknownHostException ex) {
@@ -152,7 +152,18 @@ public class SriDiscover {
 
         get("/networks", "application/json", (request, response) -> {
             response.header("Access-Control-Allow-Origin", "*");
-            return networks;
+            try {
+                List<ApolloNetwork> nets = getNetworksFromDB();
+                if (nets == null) {
+                    return "No Networks";
+                } else {
+                    response.status(200);
+                    return nets;
+                }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {}\n", "localhost");
+                return "Severe Error: Unknown host";
+            }
         }, new JsonTransformer());
 
         get("/networks/:id", "application/json", (request, response) -> {
@@ -169,7 +180,18 @@ public class SriDiscover {
 
         get("/servers", "application/json", (request, response) -> {
             response.header("Access-Control-Allow-Origin", "*");
-            return servers;
+            try {
+                List<ApolloServer> srvs = getServersFromDB();
+                if (srvs == null) {
+                    return "No Networks";
+                } else {
+                    response.status(200);
+                    return srvs;
+                }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {}\n", "localhost");
+                return "Severe Error: Unknown host";
+            }
         }, new JsonTransformer());
 
         get("/servers/:id", "application/json", (request, response) -> {
@@ -185,7 +207,7 @@ public class SriDiscover {
         }, new JsonTransformer());
 
         //close the db client
-        //mongoClient.close();
+        mongoClient.close();
     }
 
     private static void createSampleData() throws UnknownHostException {
@@ -201,9 +223,9 @@ public class SriDiscover {
         ds.getCollection(ApolloServer.class).drop();
 
         //create the application repository object
-        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(ds);
-        ApolloNetworkRepositoryMongoDBImpl netDB = new ApolloNetworkRepositoryMongoDBImpl(ds);
-        ApolloServerRepositoryMongoDBImpl srvDB = new ApolloServerRepositoryMongoDBImpl(ds);
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        ApolloNetworkRepositoryMongoDBImpl netDB = new ApolloNetworkRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        ApolloServerRepositoryMongoDBImpl srvDB = new ApolloServerRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
 
         //first the server objects
         Random sRand = new Random();
@@ -268,24 +290,45 @@ public class SriDiscover {
             applications.add(a);
             appDB.add(a);
         }
-
-        //just change the name of one of the application objects in the database
-        ApolloApplication a = applications.get(0);
-        a.setName("Srikumar Chari");
-        appDB.update(a.getId().toString(), a);
-
-        //get the second application
-        a = appDB.getAppByName(a.getName());
-
-        List<ApolloApplication> lApps = appDB.list();
-        List<ApolloNetwork> lNets = netDB.list();
-        List<ApolloServer> lSrvs = srvDB.list();
     }
 
     private static List<ApolloApplication> getApplicationsFromDB() throws UnknownHostException {
-        //morphia.map(ApolloApplication.class);
-        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(ds);
+
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
         List<ApolloApplication> l = appDB.list();
+
+        //close the db client
+        mongoClient.close();
+
+        return l;
+    }
+
+    private static List<ApolloNetwork> getNetworksFromDB() throws UnknownHostException {
+
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloNetworkRepositoryMongoDBImpl appDB = new ApolloNetworkRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        List<ApolloNetwork> l = appDB.list();
+
+        //close the db client
+        mongoClient.close();
+        return l;
+    }
+
+    private static List<ApolloServer> getServersFromDB() throws UnknownHostException {
+
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloServerRepositoryMongoDBImpl appDB = new ApolloServerRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        List<ApolloServer> l = appDB.list();
+
+        //close the db client
+        mongoClient.close();
         return l;
     }
 }

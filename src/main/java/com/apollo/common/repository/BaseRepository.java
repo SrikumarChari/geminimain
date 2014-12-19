@@ -16,8 +16,7 @@ import java.util.List;
 public interface BaseRepository <T extends Entity, PK> {
 
     /** Persist the newInstance object into database
-     * @param newInstance
-     * @return the id of the object inserted 
+     * @param newInstance 
      */
     void add(T newInstance);
 
@@ -29,12 +28,13 @@ public interface BaseRepository <T extends Entity, PK> {
     T get(PK id);
 
     /** Save changes made to a persistent object.
+     * @param id
      * @param transientObject */
     void update(PK id, T transientObject);
 
     /** Remove an object from persistent storage in the database
      * @param id */
-    void delete(PK id);
+    void remove(PK id);
     
     List<T> list();
     

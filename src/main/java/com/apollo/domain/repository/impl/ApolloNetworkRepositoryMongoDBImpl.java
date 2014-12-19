@@ -8,15 +8,16 @@ package com.apollo.domain.repository.impl;
 import com.apollo.common.repository.impl.BaseRepositoryMongoDBImpl;
 import com.apollo.domain.model.ApolloNetwork;
 import com.apollo.domain.repository.ApolloNetworkRepository;
+import com.mongodb.MongoClient;
 import java.util.List;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
 import org.pmw.tinylog.Logger;
 
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
-
 /**
  *
  * @author schari
@@ -24,9 +25,9 @@ import org.pmw.tinylog.Logger;
 public class ApolloNetworkRepositoryMongoDBImpl extends BaseRepositoryMongoDBImpl<ApolloNetwork, String>
         implements ApolloNetworkRepository {
 
-    public ApolloNetworkRepositoryMongoDBImpl(Datastore db) {
+    public ApolloNetworkRepositoryMongoDBImpl(MongoClient mongoClient, Morphia morphia, String dbName) {
         //create the database and collection
-        super(ApolloNetwork.class, db);
+        super(ApolloNetwork.class, mongoClient, morphia, dbName);
     }
 
     //find an applicaiton by name
