@@ -8,6 +8,8 @@ package com.apollo.domain.model;
 import com.apollo.common.repository.EntityMongoDB;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Reference;
 import org.pmw.tinylog.Logger;
@@ -78,13 +80,18 @@ public class ApolloApplication extends EntityMongoDB {
 
     public void addServer(ApolloServer s) {
         if (servers.contains(s)) {
-            Logger.error("Did not add server:{}  already exists in application {}", s.getName(), getName());
+            Logger.info("Did not add server:{}  already exists in application {}",
+                    ToStringBuilder.reflectionToString(s.getName(), ToStringStyle.MULTI_LINE_STYLE),
+                    ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
         } else {
             if (!servers.add(s)) {
-                Logger.info("Failed to add server: {}", s.getName());
+                Logger.debug("Failed to add server: {}",
+                        ToStringBuilder.reflectionToString(s.getName(), ToStringStyle.MULTI_LINE_STYLE));
             } else {
                 //s.setApp(this);
-                Logger.info("Successfully added server: {} to application: ", s.getName(), getName());
+                Logger.debug("Successfully added server: {} to application: {}",
+                        ToStringBuilder.reflectionToString(s.getName(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
             }
         }
     }
@@ -92,29 +99,42 @@ public class ApolloApplication extends EntityMongoDB {
     public boolean deleteServer(ApolloServer s) {
         if (servers.contains(s)) {
             if (!servers.remove(s)) {
-                Logger.info("Failed to delete server: " + s.getName());
+                Logger.error("Failed to delete server: {}",
+                        ToStringBuilder.reflectionToString(s.getName(), ToStringStyle.MULTI_LINE_STYLE));
                 return false;
             } else {
                 //remove the connection between this application and the deleted server
                 //s.setApp(null);
-                Logger.info("Successfull deleted server: {}", s.getName());
+                Logger.debug("Successfull deleted server: {}",
+                        ToStringBuilder.reflectionToString(s.getName(), ToStringStyle.MULTI_LINE_STYLE));
                 return true;
             }
         } else {
-            Logger.error("Did not delete server: {} - server does not exist in application {}", s.getName(), getName());
+            Logger.error("Did not delete server: {} - server does not exist in application {}",
+                    ToStringBuilder.reflectionToString(s.getName(), ToStringStyle.MULTI_LINE_STYLE),
+                    ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
             return false;
         }
     }
 
     public void addNetwork(ApolloNetwork n) {
         if (networks.contains(n)) {
-            Logger.info("Did not add network start: {} end: {}, already exists in application {}", n.getStart(), n.getEnd(), getName());
+            Logger.error("Did not add network start: {} end: {}, already exists in application {}",
+                    ToStringBuilder.reflectionToString(n.getStart(), ToStringStyle.MULTI_LINE_STYLE),
+                    ToStringBuilder.reflectionToString(n.getEnd(), ToStringStyle.MULTI_LINE_STYLE),
+                    ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
         } else {
             if (!networks.add(n)) {
-                Logger.error("Failed to add network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
+                Logger.error("Failed to add network, start: {} end: {} from application {}",
+                        ToStringBuilder.reflectionToString(n.getStart(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(n.getEnd(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
             } else {
                 //n.setApp(this);
-                Logger.info("Successfully added network, start: {} end: {} to application {}", n.getStart(), n.getEnd(), getName());
+                Logger.debug("Successfully added network, start: {} end: {} to application {}",
+                        ToStringBuilder.reflectionToString(n.getStart(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(n.getEnd(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
             }
         }
     }
@@ -122,18 +142,37 @@ public class ApolloApplication extends EntityMongoDB {
     public boolean deleteNetwork(ApolloNetwork n) {
         if (networks.contains(n)) {
             if (!networks.remove(n)) {
-                Logger.error("Failed to delete network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
+                Logger.error("Failed to delete network, start: {} end: {} from application {}",
+                        ToStringBuilder.reflectionToString(n.getStart(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(n.getEnd(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
                 return false;
             } else {
                 //remove the connection between this application and the deleted network
                 //n.setApp(null);
-                Logger.info("Successfully deleted network, start: {} end: {} from application {}", n.getStart(), n.getEnd(), getName());
+                Logger.debug("Successfully deleted network, start: {} end: {} from application {}",
+                        ToStringBuilder.reflectionToString(n.getStart(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(n.getEnd(), ToStringStyle.MULTI_LINE_STYLE),
+                        ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
                 return true;
             }
         } else {
-            Logger.info("Did not delete network, start: {} end: {} - network does not exist in application {}", n.getStart(), n.getEnd(), getName());
+            Logger.info("Did not delete network, start: {} end: {} - network does not exist in application {}",
+                    ToStringBuilder.reflectionToString(n.getStart(), ToStringStyle.MULTI_LINE_STYLE),
+                    ToStringBuilder.reflectionToString(n.getEnd(), ToStringStyle.MULTI_LINE_STYLE),
+                    ToStringBuilder.reflectionToString(getName(), ToStringStyle.MULTI_LINE_STYLE));
             return false;
         }
+    }
+
+    public List<ApolloNetwork> getNetworks() {
+        Logger.debug("getNetworks");
+        return networks;
+    }
+
+    public List<ApolloServer> getServers() {
+        Logger.debug("getServers");
+        return servers;
     }
 
 }

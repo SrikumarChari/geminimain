@@ -53,24 +53,27 @@ public abstract class BaseRepositoryMongoDBImpl<T extends Entity, String>
 
     @Override
     public void update(String id, T transientObject) {
-        Logger.debug("update:{}", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
+        Logger.debug("update: id: {} object: ", 
+                ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE),
+                ToStringBuilder.reflectionToString(transientObject, ToStringStyle.MULTI_LINE_STYLE));
         save(transientObject);
     }
 
     @Override
     public T get(String id) {
-        Logger.debug("get-find:{}", ToStringBuilder.reflectionToString(type.getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
+        Logger.debug("get-find id: {}", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
         return findOne(getDatastore().createQuery(type).filter("_id", id));
     }
 
     @Override
     public void add(T newInstance) {
-        Logger.debug("add:{}", ToStringBuilder.reflectionToString(type.getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
+        Logger.debug("add: {}", ToStringBuilder.reflectionToString(newInstance, ToStringStyle.MULTI_LINE_STYLE));
         save(newInstance);
     }
 
     @Override
     public void remove(String id) {
+        Logger.debug("remove: {}", ToStringBuilder.reflectionToString(id, ToStringStyle.MULTI_LINE_STYLE));
         this.deleteById(id);
     }
 }

@@ -6,10 +6,8 @@
 package com.apollo.domain.model;
 
 import com.apollo.common.repository.EntityMongoDB;
-import com.google.common.net.InetAddresses;
 import java.net.InetAddress;
 import org.mongodb.morphia.annotations.Entity;
-import org.mongodb.morphia.annotations.Reference;
 
 /**
  *

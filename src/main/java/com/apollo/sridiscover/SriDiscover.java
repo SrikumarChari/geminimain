@@ -11,15 +11,18 @@ import com.apollo.domain.model.ApolloApplication;
 import com.apollo.domain.repository.impl.ApolloApplicationRepositoryMongoDBImpl;
 import com.apollo.domain.repository.impl.ApolloNetworkRepositoryMongoDBImpl;
 import com.apollo.domain.repository.impl.ApolloServerRepositoryMongoDBImpl;
-import com.codahale.metrics.Slf4jReporter;
 import com.google.common.net.InetAddresses;
 import com.mongodb.MongoClient;
 import java.util.ArrayList;
 import static spark.Spark.*;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Random;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.pmw.tinylog.Configurator;
@@ -49,165 +52,277 @@ public class SriDiscover {
         mongoClient = new MongoClient("localhost");
 
         //create table for the application, networks and servers
-        //morphia.map(ApolloApplication.class).map(ApolloNetwork.class).map(ApolloServer.class);
         ds = morphia.createDatastore(mongoClient, "Apollo");
 
         //set the current logging level to debug
-        Configurator.currentConfig().level(Level.DEBUG).activate();
+        Configurator.currentConfig().level(Level.INFO).activate();
 
         //create some data to transfer to the front end
         createSampleData();
 
-        //return all applications
-        get("/applications", "application/json", (request, response) -> {
-            //set the CORS filters...
+        //close the db client
+        mongoClient.close();
+
+        //check if authenticated, create the call context and user context here
+        //for now it is empty!!!!
+        before((request, response) -> {
+            boolean authenticated = true;
+            // ... check if authenticated
+            if (!authenticated) {
+                halt(401, "Nice try, you are not welcome here");
+            }
+        });
+
+        after((request, response) -> {
             response.header("Access-Control-Allow-Origin", "*");
             //response.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
             //response.header("Access-Control-Max-Age", "3600");
             //response.header("Access-Control-Allow-Headers", "x-requested-with");
+        });
+
+        //return all applications
+        get("/applications", "application/json", (request, response) -> {
+            //set the CORS filters...
             try {
                 List<ApolloApplication> apps = getApplicationsFromDB();
                 if (apps == null) {
-                    return "No Applications";
+                    response.status(404);
+                    Logger.info("Could not find any applications.");
+                    return "No Applications found.";
                 } else {
                     response.status(200);
+                    Logger.debug("Found applications");
                     return apps;
                 }
             } catch (UnknownHostException ex) {
-                Logger.error("Severe Error: Unknown host - {}\n", "localhost");
-                return "Severe Error: Unknown host";
+                Logger.error("Severe Error: Unknown host - {}", "localhost");
+                response.status(500);
+                return "Severe Error: Unknown database host";
             }
-            //return applications;
         }, new JsonTransformer());
 
         //return application with ID = ':id'
         get("/applications/:name", "application/json", (request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
-            String appName = request.params(":name");
-            response.status(404);
-            return "Application with ID: " + appName + " not found!";
+            String appName;
+            //decode the URL as it may contain escape characters, etc.
+            try {
+                appName = URLDecoder.decode(request.params(":name"), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - server Name: {} Exception: {}",
+                        request.params(":name"), ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
+            try {
+                ApolloApplication a = getAppByName(appName);
+                if (a != null) {
+                    Logger.debug("Found application {}", appName);
+                    return a;
+                } else {
+                    Logger.info("Could not find application {}", appName);
+                    return "Application " + appName + " not found!";
+                }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {} Exception: {}", "localhost", ex);
+                response.status(500);
+                return "Application could not be found due to a severe database error";
+            }
         }, new JsonTransformer());
 
         //return all networks related to application with ID = ':id'
         get("/applications/:name/networks", "application/json", (request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
-            String appID = request.params(":name");
-//            for (ApolloApplication a : applications) {
-//                if (a.getId().equals(appID)) {
-//                    List<ApolloNetwork> retNetworks = new ArrayList<>();
-//                    for (ApolloNetwork n : networks) {
-//                        if (n.getAppID().equals(appID)) {
-//                            retNetworks.add(n);
-//                        }
-//                    }
-//                    return retNetworks;
-//                }
-//            }
-            response.status(404);
-            return "Application with ID: " + appID + " not found!";
+            String appName = "";
+            //decode the URL as it may contain escape characters, etc.
+            try {
+                appName = URLDecoder.decode(request.params(":name"), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - server Name: {} Exception: {}", request.params(":name"), ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
+            try {
+                List<ApolloNetwork> lNet = getAppNetworks(appName);
+                if (lNet != null) {
+                    Logger.debug("Found networks for application {}", appName);
+                    return lNet;
+                } else {
+                    response.status(404);
+                    Logger.info("Could not find any networks for application {}", appName);
+                    return "Could not find any networks for application: " + appName;
+                }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {} Exception: {}", "localhost", ex);
+                response.status(500);
+                return "Severe error: unknown database host";
+            }
         }, new JsonTransformer());
 
         //return all servers related to application with ID = ':id'
         get("/applications/:id/servers", "application/json", (Request request, Response response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
-            String appID = request.params(":id");
-//            for (ApolloApplication a : applications) {
-//                if (a.getId().equals(appID)) {
-//                    List<ApolloServer> retServers = new ArrayList<>();
-//                    for (ApolloServer s : servers) {
-//                        if (s.getAppID().equals(appID)) {
-//                            retServers.add(s);
-//                        }
-//                    }
-//                    return retServers;
-//                }
-//            }
-            response.status(404);
-            return "Application with ID: " + appID + " not found!";
+            String appName = "";
+            //decode the URL as it may contain escape characters, etc.
+            try {
+                appName = URLDecoder.decode(request.params(":name"), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - server Name: {} Exception: {}", request.params(":name"), ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
+            try {
+                List<ApolloServer> lSrv = getAppServers(appName);
+                if (lSrv != null) {
+                    Logger.debug("Found servers for application {}", appName);
+                    return lSrv;
+                } else {
+                    Logger.info("Could not find servers for application {}", appName);
+                    response.status(404);
+                    return "Could not find servers for application: " + appName;
+                }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {} Exception: {}", "localhost", ex);
+                return "Severe error: unknown database host";
+            }
         }, new JsonTransformer());
 
         //return all servers related to application with ID = ':appID' AND network with ID = ':nID'
-        get("/applications/:appID/networks/:nID/servers", "application/json", (request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
-            String appID = request.params(":appID");
-            String nID = request.params(":nID");
-//            for (ApolloApplication a : applications) {
-//                if (a.getId().equals(appID)) {
-//                    List<ApolloServer> retServers = new ArrayList<>();
-//                    for (ApolloNetwork n : networks) {
-//                        if (n.getId().equals(nID)) {
-//                            for (ApolloServer s : servers) {
-//                                if (s.getNetworkID().equals(nID) && s.getAppID().equals(appID)) {
-//                                    retServers.add(s);
-//                                }
-//                            }
-//                        }
-//                    }
-//                    return retServers;
-//                }
-//            }
-            response.status(404);
-            return "Application with ID: " + appID + " not found!";
+        get("/applications/:appname/networks/:netstart/:netend/servers", "application/json", (request, response) -> {
+            String appName = "", netStart = "", netEnd = "";
+            //decode the URL as it may contain escape characters, etc.
+            try {
+                appName = URLDecoder.decode(request.params(":appname"), "UTF-8");
+                netStart = URLDecoder.decode(request.params(":netstart"), "UTF-8");
+                netEnd = URLDecoder.decode(request.params(":netend"), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - application {} with network start: {} and end: {} Exception {}",
+                        request.params(":appname"), request.params(":netstart"), request.params(":netend"), ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
+
+            //get the servers for app network
+            try {
+                List<ApolloServer> lSrv = getAppNetworkServers(appName, netStart, netEnd);
+                if (lSrv == null || lSrv.isEmpty()) {
+                    Logger.info("No servers for application {} with network start: {} and end: {}", appName, netStart, netEnd);
+                    response.status(404);
+                    return "No servers for application " + appName + " with network start: " + netStart + " and end: " + netEnd;
+                } else {
+                    Logger.debug("Found servers for application {} with network start: {} and end: ", appName, netStart, netEnd);
+                    return lSrv;
+                }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - {} Exception {}", ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
         }, new JsonTransformer());
 
         get("/networks", "application/json", (request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
             try {
                 List<ApolloNetwork> nets = getNetworksFromDB();
                 if (nets == null) {
-                    return "No Networks";
+                    Logger.info("No networks discovered");
+                    return "No networks discovered";
                 } else {
                     response.status(200);
+                    Logger.debug("Found networks");
                     return nets;
                 }
             } catch (UnknownHostException ex) {
-                Logger.error("Severe Error: Unknown host - {}\n", "localhost");
+                Logger.error("Severe Error: Unknown host - {}", "localhost");
                 return "Severe Error: Unknown host";
             }
         }, new JsonTransformer());
 
-        get("/networks/:id", "application/json", (request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
-            String nID = request.params(":id");
-            for (ApolloNetwork n : networks) {
-                if (n.getId().equals(nID)) {
+        get("/networks/:netstart/:netend", "application/json", (request, response) -> {
+            String netStart = "", netEnd = "";
+            //decode the URL as it may contain escape characters, etc.
+            try {
+                netStart = URLDecoder.decode(request.params(":netstart"), "UTF-8");
+                netEnd = URLDecoder.decode(request.params(":netend"), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - netStart: {} netEnd: {} Exception: {}",
+                        request.params(":netstart"), request.params(":netend"), ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
+            try {
+                ApolloNetwork n = getNetworkFromDB(netStart, netEnd);
+                if (n == null) {
+                    Logger.info("No network with start {} and end {} found", netStart, netEnd);
+                    return "No network with start " + netStart + " and end " + netEnd + " found";
+                } else {
+                    Logger.debug("Found network with start {} and end {} ", netStart, netEnd);
                     return n;
                 }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {} Exception: {}", "localhost", ex);
+                return "Severe Error: Unknown host";
             }
-            response.status(404);
-            return "Network with ID: " + nID + " not found!";
+        }, new JsonTransformer());
+
+        get("/networks/:netstart/:netend/servers", "application/json", (request, response) -> {
+            String netStart = "", netEnd = "";
+            //decode the URL as it may contain escape characters, etc.
+            try {
+                netStart = URLDecoder.decode(request.params(":netstart"), "UTF-8");
+                netEnd = URLDecoder.decode(request.params(":netend"), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - netStart: {} netEnd: {} Exception: {}",
+                        request.params(":netstart"), request.params(":netend"), ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
+            try {
+                List<ApolloServer> lSrv = getNetworkServersFromDB(netStart, netEnd);
+                if (lSrv == null) {
+                    Logger.info("No servers in network with start {} and end {} found", netStart, netEnd);
+                    return "No servers in network with start " + netStart + " and end " + netEnd + " found";
+                } else {
+                    Logger.debug("Found servers in network with start {} and end {} ", netStart, netEnd);
+                    return lSrv;
+                }
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {} Exception: {}", "localhost", ex);
+                return "Severe Error: Unknown host";
+            }
         }, new JsonTransformer());
 
         get("/servers", "application/json", (request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
             try {
                 List<ApolloServer> srvs = getServersFromDB();
                 if (srvs == null) {
+                    Logger.info("Found no servers in database");
                     return "No Networks";
                 } else {
+                    Logger.debug("Found servers in database");
                     response.status(200);
                     return srvs;
                 }
             } catch (UnknownHostException ex) {
-                Logger.error("Severe Error: Unknown host - {}\n", "localhost");
+                Logger.error("Severe Error: Unknown host - {}", "localhost");
                 return "Severe Error: Unknown host";
             }
         }, new JsonTransformer());
 
-        get("/servers/:id", "application/json", (request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
-            String sID = request.params(":id");
-            for (ApolloServer s : servers) {
-                if (s.getId().equals(sID)) {
+        get("/servers/:name", "application/json", (request, response) -> {
+            String srvName;
+            try {
+                srvName = URLDecoder.decode(request.params(":name"), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.error("Severe Error: Unsupported encoding in URL - {} Exception {}", request.params(":name"), ex);
+                return "Severe Error: Unsupported encoding in URL";
+            }
+            try {
+                ApolloServer s = getServerFromDB(srvName);
+                if (s == null) {
+                    Logger.info("No server with name {} found", srvName);
+                    return "No server with name " + srvName;
+
+                } else {
+                    Logger.debug("Found server with name {}", srvName);
                     return s;
                 }
+
+            } catch (UnknownHostException ex) {
+                Logger.error("Severe Error: Unknown host - {}", "localhost");
+                return "Severe Error: Unknown host";
             }
-            response.status(404);
-            return "Server with ID: " + sID + " not found!";
         }, new JsonTransformer());
 
-        //close the db client
-        mongoClient.close();
     }
 
     private static void createSampleData() throws UnknownHostException {
@@ -293,7 +408,6 @@ public class SriDiscover {
     }
 
     private static List<ApolloApplication> getApplicationsFromDB() throws UnknownHostException {
-
         //setup the mongodb access
         mongoClient = new MongoClient("localhost");
 
@@ -307,7 +421,6 @@ public class SriDiscover {
     }
 
     private static List<ApolloNetwork> getNetworksFromDB() throws UnknownHostException {
-
         //setup the mongodb access
         mongoClient = new MongoClient("localhost");
 
@@ -320,7 +433,6 @@ public class SriDiscover {
     }
 
     private static List<ApolloServer> getServersFromDB() throws UnknownHostException {
-
         //setup the mongodb access
         mongoClient = new MongoClient("localhost");
 
@@ -331,4 +443,96 @@ public class SriDiscover {
         mongoClient.close();
         return l;
     }
+
+    private static ApolloApplication getAppByName(String appName) throws UnknownHostException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        ApolloApplication a = appDB.getAppByName(appName);
+
+        //close the db client
+        mongoClient.close();
+
+        return a;
+    }
+
+    private static List<ApolloNetwork> getAppNetworks(String appName) throws UnknownHostException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        List<ApolloNetwork> lNet = appDB.getAppNetworks(appName);
+
+        //close the db client
+        mongoClient.close();
+
+        return lNet;
+    }
+
+    private static List<ApolloServer> getAppServers(String appName) throws UnknownHostException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        List<ApolloServer> lSrv = appDB.getAppServers(appName);
+
+        //close the db client
+        mongoClient.close();
+
+        return lSrv;
+    }
+
+    private static List<ApolloServer> getAppNetworkServers(String appName, String netStart, String netEnd) throws UnknownHostException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloApplicationRepositoryMongoDBImpl appDB = new ApolloApplicationRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        List<ApolloServer> lSrv = appDB.getNetworkServers(appName, netStart, netEnd);
+
+        //close the db client
+        mongoClient.close();
+
+        return lSrv;
+    }
+
+    private static ApolloNetwork getNetworkFromDB(String netStart, String netEnd) throws UnknownHostException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloNetworkRepositoryMongoDBImpl netDB = new ApolloNetworkRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        ApolloNetwork aNet = netDB.getNetByStartAndEnd(netStart, netEnd);
+
+        //close the db client
+        mongoClient.close();
+
+        return aNet;
+    }
+
+    private static List<ApolloServer> getNetworkServersFromDB(String netStart, String netEnd) throws UnknownHostException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloNetworkRepositoryMongoDBImpl netDB = new ApolloNetworkRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        ApolloNetwork aNet = netDB.getNetByStartAndEnd(netStart, netEnd);
+
+        //close the db client
+        mongoClient.close();
+
+        return aNet.getServers();
+    }
+
+    private static ApolloServer getServerFromDB(String srvName) throws UnknownHostException {
+        //setup the mongodb access
+        mongoClient = new MongoClient("localhost");
+
+        ApolloServerRepositoryMongoDBImpl srvDB = new ApolloServerRepositoryMongoDBImpl(mongoClient, morphia, "Apollo");
+        ApolloServer aSrv = srvDB.getServerByName(srvName);
+
+        //close the db client
+        mongoClient.close();
+
+        return aSrv;
+    }
+
 }

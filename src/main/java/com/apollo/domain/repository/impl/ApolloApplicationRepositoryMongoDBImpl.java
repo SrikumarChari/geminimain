@@ -7,19 +7,20 @@ package com.apollo.domain.repository.impl;
 
 import com.apollo.common.repository.impl.BaseRepositoryMongoDBImpl;
 import com.apollo.domain.model.ApolloApplication;
+import com.apollo.domain.model.ApolloNetwork;
+import com.apollo.domain.model.ApolloServer;
 import com.apollo.domain.repository.ApolloApplicationRepository;
+import com.google.common.net.InetAddresses;
 import com.mongodb.MongoClient;
 import java.util.List;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
-import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
-import org.mongodb.morphia.dao.BasicDAO;
+import org.mongodb.morphia.query.Query;
 import org.pmw.tinylog.Logger;
 
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
-
 /**
  *
  * @author schari
@@ -29,7 +30,6 @@ public class ApolloApplicationRepositoryMongoDBImpl extends BaseRepositoryMongoD
 
 //    private static final Logger logger = 
 //            LoggerFactory.getLogger(BaseRepositoryMongoDBImpl.class);
-
     public ApolloApplicationRepositoryMongoDBImpl(MongoClient mongoClient, Morphia morphia, String dbName) {
         //create the database and collection
         super(ApolloApplication.class, mongoClient, morphia, dbName);
@@ -37,40 +37,31 @@ public class ApolloApplicationRepositoryMongoDBImpl extends BaseRepositoryMongoD
 
     //find an applicaiton by name
     public ApolloApplication getAppByName(String appName) {
-        Datastore dStore = getDatastore();
-        if (dStore == null) {
-            Logger.error("get-no datastore:{}", ToStringBuilder.reflectionToString(this.getClass().getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
-            return null;
-        }
+        Logger.debug("get app by name :{}", ToStringBuilder.reflectionToString(appName, ToStringStyle.MULTI_LINE_STYLE));
+        return findOne(getDatastore().createQuery(ApolloApplication.class).filter("name", appName));
 
-        Logger.debug("get-build query", ToStringBuilder.reflectionToString(this.getClass().getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
-        List<ApolloApplication> retList = dStore.find(ApolloApplication.class, "name", appName).asList();
-        for (ApolloApplication a : retList) {
-            //return the first one in the list
-            Logger.debug("get-found application:{}", ToStringBuilder.reflectionToString(this.getClass().getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
-            return a;
+    }
+
+    public List<ApolloNetwork> getAppNetworks(String appName) {
+        ApolloApplication a = getAppByName(appName);
+        return a.getNetworks();
+    }
+
+    public List<ApolloServer> getAppServers(String appName) {
+        ApolloApplication a = getAppByName(appName);
+        return a.getServers();
+    }
+    
+    public List<ApolloServer> getNetworkServers (String appName, String netStart, String netEnd) {
+        List<ApolloNetwork> networks = getAppNetworks(appName);
+        
+        for (ApolloNetwork n : networks) {
+            
+            if (n.getStart().getHostAddress().equals(netStart) && n.getEnd().getHostAddress().equals(netEnd)) {
+                return n.getServers();
+            }
         }
-        Logger.debug("get-did not find application:{}", ToStringBuilder.reflectionToString(this.getClass().getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
         return null;
     }
 
-    @Override
-    public void update(String id, ApolloApplication transientObject) {
-        this.save(transientObject);
-    }
-
-    @Override
-    public List<ApolloApplication> list() {
-        return this.find().asList();
-    }
-
-    @Override
-    public void add(ApolloApplication newInstance) {
-        this.save(newInstance);
-    }
-
-    @Override
-    public void remove(String id) {
-        this.deleteById(id);
-    }
 }

@@ -8,17 +8,13 @@ package com.apollo.domain.repository.impl;
 import com.apollo.common.repository.impl.BaseRepositoryMongoDBImpl;
 import com.apollo.domain.model.ApolloServer;
 import com.apollo.domain.repository.ApolloServerRepository;
+import com.google.common.net.InetAddresses;
 import com.mongodb.MongoClient;
-import java.util.List;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
-import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.pmw.tinylog.Logger;
 
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
-
 /**
  *
  * @author schari
@@ -33,20 +29,13 @@ public class ApolloServerRepositoryMongoDBImpl extends BaseRepositoryMongoDBImpl
 
     //find an applicaiton by name
     public ApolloServer getServerByName(String srvName) {
-        Datastore ds = getDatastore();
-        if (ds == null) {
-            Logger.error("get server by name - no datastore:{}", srvName);
-            return null;
-        }
+        Logger.error("get server by name - {}", srvName);
+        return findOne(getDatastore().createQuery(ApolloServer.class).filter("name", srvName));
+    }
 
-        Logger.debug("get server by name - build query for {}", srvName);
-        List<ApolloServer> retList = ds.find(ApolloServer.class, "name", srvName).asList();
-        for (ApolloServer a : retList) {
-            //return the first one in the list
-            Logger.debug("get server by name - found server: {}", srvName);
-            return a;
-        }
-        Logger.debug("get server by name - did not find server:{}", ToStringBuilder.reflectionToString(this.getClass().getSimpleName(), ToStringStyle.MULTI_LINE_STYLE));
-        return null;
+    //find an applicaiton by name
+    public ApolloServer getServerByIPAddress(String ipAddr) {
+        Logger.error("get server by IP Address - {}", ipAddr);
+        return findOne(getDatastore().createQuery(ApolloServer.class).filter("address", InetAddresses.forString(ipAddr)));
     }
 }
