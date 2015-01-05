@@ -5,13 +5,20 @@
  */
 package com.apollo.sridiscover;
 
+import com.apollo.domain.dto.ApolloApplicationDTO;
+import com.apollo.domain.dto.ApolloNetworkDTO;
+import com.apollo.domain.dto.ApolloServerDTO;
 import com.apollo.domain.model.ApolloServer;
 import com.apollo.domain.model.ApolloNetwork;
 import com.apollo.domain.model.ApolloApplication;
 import com.apollo.domain.repository.impl.ApolloApplicationRepositoryMongoDBImpl;
 import com.apollo.domain.repository.impl.ApolloNetworkRepositoryMongoDBImpl;
 import com.apollo.domain.repository.impl.ApolloServerRepositoryMongoDBImpl;
+import com.apollo.sridiscover.mapper.ApolloMapper;
+import com.apollo.sridiscover.mapper.ApolloMapperModule;
 import com.google.common.net.InetAddresses;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import com.mongodb.MongoClient;
 import java.util.ArrayList;
 import static spark.Spark.*;
@@ -21,8 +28,6 @@ import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Random;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.pmw.tinylog.Configurator;
@@ -53,6 +58,10 @@ public class SriDiscover {
 
         //create table for the application, networks and servers
         ds = morphia.createDatastore(mongoClient, "Apollo");
+
+        //create the mapper
+        Injector injector = Guice.createInjector(new ApolloMapperModule());
+        ApolloMapper mapper = injector.getInstance(ApolloMapper.class);
 
         //set the current logging level to debug
         Configurator.currentConfig().level(Level.INFO).activate();
@@ -85,14 +94,18 @@ public class SriDiscover {
             //set the CORS filters...
             try {
                 List<ApolloApplication> apps = getApplicationsFromDB();
-                if (apps == null) {
+                if (apps == null || apps.isEmpty()) {
                     response.status(404);
                     Logger.info("Could not find any applications.");
                     return "No Applications found.";
                 } else {
                     response.status(200);
                     Logger.debug("Found applications");
-                    return apps;
+                    List<ApolloApplicationDTO> dtoApps = new ArrayList();
+                    for (ApolloApplication a : apps) {
+                        dtoApps.add(mapper.getDTOFromApp(a));
+                    }
+                    return dtoApps;
                 }
             } catch (UnknownHostException ex) {
                 Logger.error("Severe Error: Unknown host - {}", "localhost");
@@ -116,7 +129,7 @@ public class SriDiscover {
                 ApolloApplication a = getAppByName(appName);
                 if (a != null) {
                     Logger.debug("Found application {}", appName);
-                    return a;
+                    return mapper.getDTOFromApp(a);
                 } else {
                     Logger.info("Could not find application {}", appName);
                     return "Application " + appName + " not found!";
@@ -128,9 +141,14 @@ public class SriDiscover {
             }
         }, new JsonTransformer());
 
+        post("/applications", (request, response) -> {
+            String body = request.body();
+            return "Hello World: " + request.body();
+        });
+
         //return all networks related to application with ID = ':id'
-        get("/applications/:name/networks", "application/json", (request, response) -> {
-            String appName = "";
+        get("/applications/:name/networks", "application/json", (Request request, Response response) -> {
+            String appName;
             //decode the URL as it may contain escape characters, etc.
             try {
                 appName = URLDecoder.decode(request.params(":name"), "UTF-8");
@@ -142,7 +160,11 @@ public class SriDiscover {
                 List<ApolloNetwork> lNet = getAppNetworks(appName);
                 if (lNet != null) {
                     Logger.debug("Found networks for application {}", appName);
-                    return lNet;
+                    List<ApolloNetworkDTO> dtoNets = new ArrayList();
+                    for (ApolloNetwork aNet : lNet) {
+                        dtoNets.add(mapper.getDTOFromNetwork(aNet));
+                    }
+                    return dtoNets;
                 } else {
                     response.status(404);
                     Logger.info("Could not find any networks for application {}", appName);
@@ -162,14 +184,19 @@ public class SriDiscover {
             try {
                 appName = URLDecoder.decode(request.params(":name"), "UTF-8");
             } catch (UnsupportedEncodingException ex) {
-                Logger.error("Severe Error: Unsupported encoding in URL - server Name: {} Exception: {}", request.params(":name"), ex);
+                Logger.error("Severe Error: Unsupported encoding in URL - server Name: {} Exception: {}",
+                        request.params(":name"), ex);
                 return "Severe Error: Unsupported encoding in URL";
             }
             try {
                 List<ApolloServer> lSrv = getAppServers(appName);
                 if (lSrv != null) {
                     Logger.debug("Found servers for application {}", appName);
-                    return lSrv;
+                    List<ApolloServerDTO> dtoSrvs = new ArrayList();
+                    for (ApolloServer s : lSrv) {
+                        dtoSrvs.add(mapper.getDTOFromServer(s));
+                    }
+                    return dtoSrvs;
                 } else {
                     Logger.info("Could not find servers for application {}", appName);
                     response.status(404);
@@ -199,15 +226,21 @@ public class SriDiscover {
             try {
                 List<ApolloServer> lSrv = getAppNetworkServers(appName, netStart, netEnd);
                 if (lSrv == null || lSrv.isEmpty()) {
-                    Logger.info("No servers for application {} with network start: {} and end: {}", appName, netStart, netEnd);
+                    Logger.info("No servers for application {} with network start: {} and end: {}",
+                            appName, netStart, netEnd);
                     response.status(404);
                     return "No servers for application " + appName + " with network start: " + netStart + " and end: " + netEnd;
                 } else {
-                    Logger.debug("Found servers for application {} with network start: {} and end: ", appName, netStart, netEnd);
-                    return lSrv;
+                    Logger.debug("Found servers for application {} with network start: {} and end: ",
+                            appName, netStart, netEnd);
+                    List<ApolloServerDTO> dtoSrvs = new ArrayList();
+                    for (ApolloServer s : lSrv) {
+                        dtoSrvs.add(mapper.getDTOFromServer(s));
+                    }
+                    return dtoSrvs;
                 }
             } catch (UnknownHostException ex) {
-                Logger.error("Severe Error: Unsupported encoding in URL - {} Exception {}", ex);
+                Logger.error("Severe Error: Unsupported encoding in URL - {} {} {} Exception {}", appName, netStart, netEnd, ex);
                 return "Severe Error: Unsupported encoding in URL";
             }
         }, new JsonTransformer());
@@ -221,7 +254,11 @@ public class SriDiscover {
                 } else {
                     response.status(200);
                     Logger.debug("Found networks");
-                    return nets;
+                    List<ApolloNetworkDTO> dtoNets = new ArrayList();
+                    for (ApolloNetwork n : nets) {
+                        dtoNets.add(mapper.getDTOFromNetwork(n));
+                    }
+                    return dtoNets;
                 }
             } catch (UnknownHostException ex) {
                 Logger.error("Severe Error: Unknown host - {}", "localhost");
@@ -247,7 +284,7 @@ public class SriDiscover {
                     return "No network with start " + netStart + " and end " + netEnd + " found";
                 } else {
                     Logger.debug("Found network with start {} and end {} ", netStart, netEnd);
-                    return n;
+                    return mapper.getDTOFromNetwork(n);
                 }
             } catch (UnknownHostException ex) {
                 Logger.error("Severe Error: Unknown host - {} Exception: {}", "localhost", ex);
@@ -273,7 +310,11 @@ public class SriDiscover {
                     return "No servers in network with start " + netStart + " and end " + netEnd + " found";
                 } else {
                     Logger.debug("Found servers in network with start {} and end {} ", netStart, netEnd);
-                    return lSrv;
+                    List<ApolloServerDTO> dtoSrvs = new ArrayList();
+                    for (ApolloServer s : lSrv) {
+                        dtoSrvs.add(mapper.getDTOFromServer(s));
+                    }
+                    return dtoSrvs;
                 }
             } catch (UnknownHostException ex) {
                 Logger.error("Severe Error: Unknown host - {} Exception: {}", "localhost", ex);
@@ -289,8 +330,12 @@ public class SriDiscover {
                     return "No Networks";
                 } else {
                     Logger.debug("Found servers in database");
+                    List<ApolloServerDTO> dtoSrvs = new ArrayList();
+                    for (ApolloServer s : srvs) {
+                        dtoSrvs.add(mapper.getDTOFromServer(s));
+                    }
                     response.status(200);
-                    return srvs;
+                    return dtoSrvs;
                 }
             } catch (UnknownHostException ex) {
                 Logger.error("Severe Error: Unknown host - {}", "localhost");
@@ -314,7 +359,7 @@ public class SriDiscover {
 
                 } else {
                     Logger.debug("Found server with name {}", srvName);
-                    return s;
+                    return mapper.getDTOFromServer(s);
                 }
 
             } catch (UnknownHostException ex) {
