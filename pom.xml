@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.apollo.sridiscover</groupId>
-    <artifactId>SriDiscover</artifactId>
+    <groupId>com.gemini.geminimain</groupId>
+    <artifactId>GeminiMain</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
-        <main-class>com.apollo.sridiscover.SriDiscover</main-class>
+        <main-class>com.gemini.geminimain.GeminiMain</main-class>
         <dropwizard.metrics.core.version>3.1.0</dropwizard.metrics.core.version>
         <google.guava.version>18.0</google.guava.version>
         <spark.version>2.0.0</spark.version>
@@ -106,6 +106,11 @@
             <artifactId>dozer</artifactId>
             <version>5.4.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.3.6</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -132,5 +137,5 @@
             </plugin>
         </plugins>
     </build>
-    <name>SriDiscover</name>
+    <name>GeminiMain</name>
 </project>

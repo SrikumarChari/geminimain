@@ -11,23 +11,35 @@
     </configuration>
 
     <mapping>
-        <class-a>com.apollo.domain.model.ApolloServer</class-a>
-        <class-b>com.apollo.domain.dto.ApolloServerDTO</class-b>
-        <field custom-converter="com.apollo.sridiscover.mapper.IPAddressCustomConverter">
+        <class-a>com.gemini.domain.model.GeminiServer</class-a>
+        <class-b>com.gemini.domain.dto.GeminiServerDTO</class-b>
+        <field custom-converter="com.gemini.sridiscover.mapper.IPAddressCustomConverter">
             <a>address</a>
             <b>address</b>
         </field>
     </mapping>                    
     <mapping>
-        <class-a>com.apollo.domain.model.ApolloNetwork</class-a>
-        <class-b>com.apollo.domain.dto.ApolloNetworkDTO</class-b>
-        <field custom-converter="com.apollo.sridiscover.mapper.IPAddressCustomConverter">
+        <class-a>com.gemini.domain.model.GeminiNetwork</class-a>
+        <class-b>com.gemini.domain.dto.GeminiNetworkDTO</class-b>
+        <field custom-converter="com.gemini.mapper.IPAddressCustomConverter">
             <a>start</a>
             <b>start</b>
         </field>
-        <field custom-converter="com.apollo.sridiscover.mapper.IPAddressCustomConverter">
+        <field custom-converter="com.gemini.mapper.IPAddressCustomConverter">
             <a>end</a>
             <b>end</b>
+        </field>
+        <field custom-converter="com.gemini.mapper.IPAddressCustomConverter">
+            <a>network</a>
+            <b>network</b>
+        </field>
+    </mapping>                    
+    <mapping>
+        <class-a>com.gemini.domain.model.GeminiEnvironment</class-a>
+        <class-b>com.gemini.domain.dto.GeminiEnvironmentDTO</class-b>
+        <field custom-converter="com.gemini.mapper.EnvironmentTypeCustomConverter">
+            <a>type</a>
+            <b>type</b>
         </field>
     </mapping>                    
 </mappings>  
